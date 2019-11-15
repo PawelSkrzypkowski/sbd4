@@ -1,0 +1,46 @@
+db.ogloszenie.explain('executionStats').aggregate([
+	{
+		$match: {
+			$or: [
+				{ogloszenieZainteresowanieList: {$size: 3}},
+				{ogloszenieZainteresowanieList: {$size: 4}},
+				{ogloszenieZainteresowanieList: {$size: 5}}
+			],
+			"zleceniodawca.dzialalnosc": {
+				$exists: true,
+				$ne: null
+			},
+			"kandydatList": {
+				$not: {
+					$elemMatch: {
+						$or: [{
+							"dataaplikacji": {
+								$lte : new ISODate("2018-01-01T00:00:00Z")
+							}
+						}, {
+							"dataaplikacji": {
+								$gte : new ISODate("2019-12-31T23:59:99Z")
+							}
+						}]
+					}
+				},
+				$elemMatch: {
+					"zaakceptowany": "true",
+					"kandydujacyznajomiIds": { 
+						$exists: true, 
+						$ne: []
+					}
+				}
+			}
+		}
+	},
+	{
+        $addFields: { kandydat_count: {$size: { "$ifNull": [ "$kandydatList", [] ] } } }
+    }, 
+    {   
+        $sort: {"kandydat_count":1} 
+    },
+	{
+		$limit: 5
+	}
+]);
